@@ -31,7 +31,7 @@ class DatabaseService {
     `;
     
     const values = [
-      new Date(),
+      data.reading_time,
       location,
       data.meter_type,
       data.meter_serial_number,
