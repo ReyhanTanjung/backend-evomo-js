@@ -1,0 +1,40 @@
+{
+    "project_info": {
+      "project_number": "366471157245",
+      "firebase_url": "https://auth-login-f60fe-default-rtdb.firebaseio.com",
+      "project_id": "auth-login-f60fe",
+      "storage_bucket": "auth-login-f60fe.firebasestorage.app"
+    },
+    "client": [
+      {
+        "client_info": {
+          "mobilesdk_app_id": "1:366471157245:android:1e4c62b51f2ee1693fb594",
+          "android_client_info": {
+            "package_name": "com.evomo.powermart"
+          }
+        },
+        "oauth_client": [
+          {
+            "client_id": "366471157245-ot3uaqjonun1ql6d4c6mo98qaoj6p2dp.apps.googleusercontent.com",
+            "client_type": 3
+          }
+        ],
+        "api_key": [
+          {
+            "current_key": "AIzaSyAmR-y35VnXlyjFQ5RpJ2FcMQt7_bJvmMU"
+          }
+        ],
+        "services": {
+          "appinvite_service": {
+            "other_platform_oauth_client": [
+              {
+                "client_id": "366471157245-ot3uaqjonun1ql6d4c6mo98qaoj6p2dp.apps.googleusercontent.com",
+                "client_type": 3
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "configuration_version": "1"
+  }

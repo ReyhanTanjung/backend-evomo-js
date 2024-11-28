@@ -1,7 +1,9 @@
 // routes/apiRoutes.js
 const express = require('express');
+const admin = require('firebase-admin');
 const { formatDate } = require('../utils/dateFormatter');
 const DatabaseService = require('../services/databaseService');
+const { sendAnomaliesNotification } = require('../utils/cloudMessaging');
 
 const router = express.Router();
 
@@ -109,6 +111,52 @@ router.get('/fetch_data/anomaly/:id', async (req, res) => {
     res.json(anomalyData);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+router.post("/add_notification_token", async (req, res) => {
+  const { token } = req.body;
+
+  if (!token) {
+    return res.status(400).json({ error: 'Token tidak ditemukan' });
+  }
+
+  try {
+    await DatabaseService.saveTokenToDb(token);
+    res.status(200).json({ message: 'Token berhasil disimpan' });
+  } catch (err) {
+    logWithTimestamp(`Error saving token: ${err.message}`);
+    res.status(500).json({ error: 'Gagal menyimpan token' });
+  }
+});
+
+// Testing purposes
+router.post("/send-notification", async (req, res) => {
+  const anomalyData = {
+    timestamp: "2024-11-28 15:30:00",
+    anomaly: "Overheating detected",
+    location: "Jakarta",
+  };
+
+  sendAnomaliesNotification(anomalyData)
+    .then(response => {
+      console.log("Notifikasi berhasil dikirim:", response);
+      res.status(200).json({ message: 'Notifikasi berhasil dikirim' });
+    })
+    .catch(error => {
+      console.error("Gagal mengirim notifikasi:", error);
+      res.status(500).json({ message: 'Notifikasi gagal dikirim' });
+    });
+});
+
+// Testing purposes
+router.post("/hours-usage", async (req, res) => {
+  try {
+    await DatabaseService.saveHoursUsage();
+    res.status(200).json({ message: 'Hours Usage berhasil dihitung' });
+  } catch (err) {
+    logWithTimestamp(`Gagal menghitung hours usage: ${err.message}`);
+    res.status(500).json({ error: 'Gagal menghitung hours usage' });
   }
 });
 

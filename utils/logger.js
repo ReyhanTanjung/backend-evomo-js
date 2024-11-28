@@ -1,8 +1,12 @@
 // utils/logger.js
 const logWithTimestamp = (message) => {
-    console.log(`[${new Date().toISOString()}] ${message}`);
-  };
+  // Mengambil waktu dengan zona waktu Asia/Jakarta
+  const jakartaTime = new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' });
   
-  module.exports = {
-    logWithTimestamp
-  };
+  // Mencetak log dengan format yang diinginkan
+  console.log(`[${jakartaTime}] ${message}`);
+};
+
+module.exports = {
+  logWithTimestamp
+};

@@ -1,7 +1,16 @@
 // app.js
+const cron = require('node-cron');
+const admin = require("firebase-admin");
 const express = require('express');
 const bodyParser = require('body-parser');
 const { logWithTimestamp } = require('./utils/logger');
+
+// Initialize Firebase Admin SDK
+const serviceAccount = require("./firebase-key.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
 
 // Configuration imports
 const mqttConfig = require('./config/mqtt');
@@ -51,6 +60,11 @@ const mqttService = new MqttService(
   topics, 
   handleMqttMessage
 );
+
+// Schedulling to calculate average usage per hour
+cron.schedule('50 * * * *', async () => {
+  await DatabaseService.saveHoursUsage();
+});
 
 // Run server
 const PORT = process.env.PORT || 3000;
