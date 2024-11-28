@@ -1,6 +1,6 @@
 // config/mqtt.js
 module.exports = {
-    brokerUrl: 'mqtt://mqtt.eclipseprojects.io',
+    brokerUrl: 'mqtt://mqtt.telkomiot.id',
     options: {
       clientId: `mqtt_${Math.random().toString(16).substr(2, 8)}`,
       clean: true,

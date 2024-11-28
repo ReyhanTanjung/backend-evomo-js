@@ -62,7 +62,7 @@ const mqttService = new MqttService(
 );
 
 // Schedulling to calculate average usage per hour
-cron.schedule('50 * * * *', async () => {
+cron.schedule('5 * * * *', async () => {
   await DatabaseService.saveHoursUsage();
 });
 
