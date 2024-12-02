@@ -16,7 +16,8 @@ const { logWithTimestamp } = require('./utils/logger');
 dotenv.config();
 
 // Firebase Initialization
-const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
+const serviceAccount = require("./firebase-key.json");
+
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
