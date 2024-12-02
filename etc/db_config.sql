@@ -30,7 +30,8 @@ CREATE TABLE hours_usage (
 CREATE TABLE anomaly_data (
     hours_usage_id INTEGER PRIMARY KEY,
     anomaly_type VARCHAR(50) NOT NULL,
-    FOREIGN KEY (hours_usage_id) REFERENCES hours_usage(id)
+    FOREIGN KEY (hours_usage_id) REFERENCES hours_usage(id),
+    predicted_energy FLOAT
 );
 
 CREATE TABLE user_token (

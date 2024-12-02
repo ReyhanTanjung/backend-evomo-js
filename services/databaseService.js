@@ -1,5 +1,6 @@
 // services/databaseService.js
 const { Client } = require('pg');
+const axios = require('axios');
 const dbConfig = require('../config/database');
 const { logWithTimestamp } = require('../utils/logger');
 const dayjs = require('dayjs');
@@ -117,9 +118,9 @@ class DatabaseService {
           ]);
       }
 
-      console.log('Data berhasil disimpan ke tabel hours_usage.');
+      logWithTimestamp('Data berhasil disimpan ke tabel hours_usage.');
     } catch (error) {
-      console.error('Terjadi kesalahan:', error);
+      logWithTimestamp('Terjadi kesalahan:', error);
     }
   }
 
@@ -187,7 +188,7 @@ class DatabaseService {
 
   async fetchAnomalyDetails(id) {
     const query = `
-      SELECT hu.*, ad.anomaly_type
+      SELECT hu.*, ad.anomaly_type, ad.predicted_energy
       FROM hours_usage hu
       JOIN anomaly_data ad ON hu.id = ad.hours_usage_id
       WHERE hu.id = $1
@@ -195,6 +196,90 @@ class DatabaseService {
 
     const result = await this.client.query(query, [id]);
     return result.rows;
+  }
+
+  // NEED TO CHECK
+  async fetchLast24HoursUsage(location) {
+    const query = `
+      SELECT active_energy_import 
+      FROM hours_usage 
+      WHERE position = $1 
+      ORDER BY id 
+      LIMIT 24;
+    `;
+
+    const result = await this.client.query(query, [location]);
+    return result.rows.map(row => row.active_energy_import);
+  }
+
+  // NEED TO CHECK
+  async sendAnomalyPredictionRequest(location) {
+    try {
+      const usageData = await this.fetchLast24HoursUsage(location);
+
+      const predictionEndpoints = {
+        'Chiller_Witel_Jaksel': 'https://ml-api.example.com/predict/chiller', // DUMMY
+        'Lift_Witel_Jaksel': 'https://ml-api.example.com/predict/lift-jaksel', // DUMMY
+        'Lift_OPMC': 'https://ml-api.example.com/predict/lift-opmc', // DUMMY
+        'AHU_Lantai_2': 'https://ml-api.example.com/predict/ahu-lantai2' // DUMMY
+      };
+
+      if (!predictionEndpoints[location]) {
+        throw new Error(`Endpoint tidak ditemukan untuk lokasi: ${location}`);
+      }
+
+      const response = await axios.post(predictionEndpoints[location], {
+        features: usageData
+      });
+
+      logWithTimestamp(`Prediksi untuk ${location}: ${JSON.stringify(response.data)}`);
+
+      return response.data;
+    } catch (error) {
+      logWithTimestamp(`Kesalahan prediksi anomali untuk ${location}: ${error.message}`);
+      throw error;
+    }
+  }
+
+  // NEED TO CHECK
+  async processAnomalyPredictions() {
+    const locations = [
+      'Chiller_Witel_Jaksel', 
+      'Lift_Witel_Jaksel', 
+      'Lift_OPMC', 
+      'AHU_Lantai_2'
+    ];
+
+    try {
+      await this.saveHoursUsage();
+
+      const predictions = await Promise.all(
+        locations.map(async (location) => {
+          try {
+            const prediction = await this.sendAnomalyPredictionRequest(location);
+            return { location, prediction };
+          } catch (error) {
+            return { location, error: error.message };
+          }
+        })
+      );
+
+      predictions.forEach(result => {
+        if (result.prediction) {
+          logWithTimestamp(`Prediksi ${result.location}: ${JSON.stringify(result.prediction)}`);
+          
+          // Simpan ke database atau kirim notifikasi jika ada anomali
+          // this.checkAndSendAnomalyNotification(result.location, result.prediction);
+        } else {
+          logWithTimestamp(`Gagal prediksi ${result.location}: ${result.error}`);
+        }
+      });
+
+      return predictions;
+    } catch (error) {
+      logWithTimestamp(`Kesalahan proses prediksi: ${error.message}`);
+      throw error;
+    }
   }
 
   close() {

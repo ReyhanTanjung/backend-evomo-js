@@ -105,7 +105,8 @@ router.get('/fetch_data/anomaly/:id', async (req, res) => {
       reactive_energy_export: result[0].reactive_energy_export,
       apparent_energy_import: result[0].apparent_energy_import,
       apparent_energy_export: result[0].apparent_energy_export,
-      anomaly_type: result[0].anomaly_type
+      anomaly_type: result[0].anomaly_type,
+      predicted_energy: result[0].predicted_energy
     }];
 
     res.json(anomalyData);
@@ -114,6 +115,7 @@ router.get('/fetch_data/anomaly/:id', async (req, res) => {
   }
 });
 
+// Add token
 router.post("/add_notification_token", async (req, res) => {
   const { token } = req.body;
 
@@ -130,7 +132,7 @@ router.post("/add_notification_token", async (req, res) => {
   }
 });
 
-// Testing purposes
+// Testing purposes (Send Notification) Delete Later
 router.post("/send-notification", async (req, res) => {
   const anomalyData = {
     timestamp: "2024-11-28 15:30:00",
@@ -147,17 +149,6 @@ router.post("/send-notification", async (req, res) => {
       console.error("Gagal mengirim notifikasi:", error);
       res.status(500).json({ message: 'Notifikasi gagal dikirim' });
     });
-});
-
-// Testing purposes
-router.post("/hours-usage", async (req, res) => {
-  try {
-    await DatabaseService.saveHoursUsage();
-    res.status(200).json({ message: 'Hours Usage berhasil dihitung' });
-  } catch (err) {
-    logWithTimestamp(`Gagal menghitung hours usage: ${err.message}`);
-    res.status(500).json({ error: 'Gagal menghitung hours usage' });
-  }
 });
 
 module.exports = router;

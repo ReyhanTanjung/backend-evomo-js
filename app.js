@@ -3,11 +3,16 @@ const cron = require('node-cron');
 const admin = require("firebase-admin");
 const express = require('express');
 const bodyParser = require('body-parser');
+const dotenv = require('dotenv')
 const { logWithTimestamp } = require('./utils/logger');
 
-// Initialize Firebase Admin SDK
-const serviceAccount = require("./firebase-key.json");
+// Load .env file
+dotenv.config();
 
+// Parse Firebase credentials from environment variable
+const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
+
+// Initialize Firebase Admin SDK
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
@@ -61,9 +66,12 @@ const mqttService = new MqttService(
   handleMqttMessage
 );
 
-// Schedulling to calculate average usage per hour
+// Schedulling to calculate average usage per hour for every XX:05:XX
 cron.schedule('5 * * * *', async () => {
   await DatabaseService.saveHoursUsage();
+  // Implement querry to get last usage in 24 hours
+  // Send Notification and save to database if there is anomaly
+  // Send notif use sendAnomaliesNotification()
 });
 
 // Run server
