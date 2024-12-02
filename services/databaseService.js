@@ -1,22 +1,49 @@
-// services/databaseService.js
+/**
+ * Database Service Module
+ * @module services/databaseService
+ * @description Manages database interactions for sensor data, tokens, and anomaly predictions
+ * Provides CRUD operations and complex querying for energy consumption and anomaly detection
+ */
 const { Client } = require('pg');
 const axios = require('axios');
 const dbConfig = require('../config/database');
 const { logWithTimestamp } = require('../utils/logger');
 const dayjs = require('dayjs');
 
+/**
+ * DatabaseService: Handles PostgreSQL database operations for energy monitoring system
+ * @class
+ * @description Manages database connections, data storage, retrieval, and anomaly prediction
+ */
 class DatabaseService {
+  /**
+   * Create a DatabaseService instance
+   * @constructor
+   * @description Initializes database connection and establishes client
+   */
   constructor() {
     this.client = new Client(dbConfig);
     this.connect();
   }
 
+  /**
+   * Establish database connection
+   * @method
+   * @description Connects to the PostgreSQL database and logs connection status
+   */
   connect() {
     this.client.connect()
       .then(() => logWithTimestamp('Database connected successfully'))
       .catch(err => logWithTimestamp(`Database connection error: ${err.message}`));
   }
 
+  /**
+   * Save sensor data to database
+   * @method
+   * @param {string} location - Identifier for the sensor location
+   * @param {Object} data - Sensor reading data with energy consumption metrics
+   * @description Inserts differential energy consumption data into sensor_data table
+   */
   async saveDataToDb(location, data) {
     const query = `
       INSERT INTO sensor_data(
@@ -47,6 +74,12 @@ class DatabaseService {
     }
   }
 
+  /**
+   * Save user authentication token
+   * @method
+   * @param {string} token - Authentication token to be stored
+   * @description Stores user token with current date in user_token table
+   */
   async saveTokenToDb(token) {
     const jakartaTime = new Date().toISOString().slice(0, 10);
     const query = `
@@ -67,6 +100,11 @@ class DatabaseService {
     }
   }
 
+  /**
+   * Calculate and save hourly usage statistics
+   * @method
+   * @description Computes average energy metrics for the past hour and saves to hours_usage table
+   */
   async saveHoursUsage() {
     try {
       const currentTime = new Date();
@@ -124,6 +162,12 @@ class DatabaseService {
     }
   }
 
+  /**
+   * Retrieve valid user tokens
+   * @method
+   * @returns {Promise<Array>} List of valid tokens (less than 270 days old)
+   * @description Fetches and filters user tokens based on initialization time
+   */
   async fetchUsersToken() {
     const query = 'SELECT token, init_time FROM user_token';
 
@@ -144,6 +188,14 @@ class DatabaseService {
     }
   }
 
+  /**
+   * Fetch historical sensor data
+   * @method
+   * @param {string} location - Sensor location identifier
+   * @param {string} [startdate] - Optional start date for data retrieval
+   * @param {string} [enddate] - Optional end date for data retrieval
+   * @returns {Promise<Array>} Historical sensor data records
+   */
   async fetchHistoricalData(location, startdate, enddate) {
     let query = 'SELECT * FROM sensor_data WHERE position = $1';
     const queryParams = [location];
@@ -162,6 +214,12 @@ class DatabaseService {
     return result.rows;
   }
 
+  /**
+   * Fetch most recent two records for a location
+   * @method
+   * @param {string} location - Sensor location identifier
+   * @returns {Promise<Array>} Last two sensor data records
+   */
   async fetchLastTwoRecords(location) {
     const query = `
       SELECT * FROM sensor_data 
@@ -174,6 +232,11 @@ class DatabaseService {
     return result.rows;
   }
 
+  /**
+   * Retrieve anomaly data
+   * @method
+   * @returns {Promise<Array>} List of detected anomalies
+   */
   async fetchAnomalies() {
     const query = `
       SELECT ad.hours_usage_id as id, hu.position, hu.reading_time, ad.anomaly_type
@@ -186,6 +249,12 @@ class DatabaseService {
     return result.rows;
   }
 
+  /**
+   * Get detailed anomaly information
+   * @method
+   * @param {number} id - Unique identifier for the anomaly
+   * @returns {Promise<Array>} Detailed anomaly information
+   */
   async fetchAnomalyDetails(id) {
     const query = `
       SELECT hu.*, ad.anomaly_type, ad.predicted_energy
@@ -199,6 +268,12 @@ class DatabaseService {
   }
 
   // NEED TO CHECK
+  /**
+   * Retrieve last 24 hours of energy import data
+   * @method
+   * @param {string} location - Sensor location identifier
+   * @returns {Promise<number[]>} Active energy import values for the last 24 hours
+   */
   async fetchLast24HoursUsage(location) {
     const query = `
       SELECT active_energy_import 
@@ -213,6 +288,12 @@ class DatabaseService {
   }
 
   // NEED TO CHECK
+  /**
+   * Send anomaly prediction request to machine learning service
+   * @method
+   * @param {string} location - Sensor location to predict anomalies for
+   * @returns {Promise<Object>} Prediction results from ML service
+   */
   async sendAnomalyPredictionRequest(location) {
     try {
       const usageData = await this.fetchLast24HoursUsage(location);
@@ -242,6 +323,11 @@ class DatabaseService {
   }
 
   // NEED TO CHECK
+  /**
+   * Process anomaly predictions for multiple locations
+   * @method
+   * @returns {Promise<Array>} Prediction results for each location
+   */
   async processAnomalyPredictions() {
     const locations = [
       'Chiller_Witel_Jaksel', 
@@ -282,6 +368,11 @@ class DatabaseService {
     }
   }
 
+  /**
+   * Close database connection
+   * @method
+   * @description Terminates the PostgreSQL client connection
+   */
   close() {
     this.client.end();
   }

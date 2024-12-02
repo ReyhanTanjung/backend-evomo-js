@@ -1,4 +1,10 @@
-// app.js
+/**
+ * IoT Energy Monitoring Application
+ * @module app
+ * @description Central coordination and entry point for IoT-based energy monitoring application
+ */
+
+// Import Dependencies
 const cron = require('node-cron');
 const admin = require("firebase-admin");
 const express = require('express');
@@ -6,40 +12,41 @@ const bodyParser = require('body-parser');
 const dotenv = require('dotenv')
 const { logWithTimestamp } = require('./utils/logger');
 
-// Load .env file
+// Environment Configuration
 dotenv.config();
 
-// Parse Firebase credentials from environment variable
+// Firebase Initialization
 const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
-
-// Initialize Firebase Admin SDK
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
 
-// Configuration imports
+// Import Configurations
 const mqttConfig = require('./config/mqtt');
 const { locationMapping, topics } = require('./config/topics');
 
-// Service imports
+// Import Services
 const MqttService = require('./services/mqttService');
 const DatabaseService = require('./services/databaseService');
 const DataProcessor = require('./services/dataProcessor');
 
-// Route imports
+// Import Routes
 const apiRoutes = require('./routes/apiRoutes');
 
+// Express App Setup
 const app = express();
 app.use(bodyParser.json());
 app.use('/api', apiRoutes);
 
-// Get locations from location mapping
+// Data Preparation
 const locations = Object.values(locationMapping);
-
-// Initialize data processor
 const dataProcessor = new DataProcessor(locations);
 
-// MQTT message handler
+/**
+ * MQTT Message Handler
+ * @param {string} topic - MQTT topic
+ * @param {Buffer} message - MQTT payload
+ */
 const handleMqttMessage = async (topic, message) => {
   try {
     const data = JSON.parse(message.toString());
@@ -58,7 +65,7 @@ const handleMqttMessage = async (topic, message) => {
   }
 };
 
-// Initialize MQTT Service
+// MQTT Service Initialization
 const mqttService = new MqttService(
   mqttConfig.brokerUrl, 
   mqttConfig.options, 
@@ -66,21 +73,19 @@ const mqttService = new MqttService(
   handleMqttMessage
 );
 
-// Schedulling to calculate average usage per hour for every XX:05:XX
+// Periodic Data Processing Schedule
 cron.schedule('5 * * * *', async () => {
   await DatabaseService.saveHoursUsage();
-  // Implement querry to get last usage in 24 hours
-  // Send Notification and save to database if there is anomaly
-  // Send notif use sendAnomaliesNotification()
+  // Future: Implement anomaly detection and notification
 });
 
-// Run server
+// Server Configuration
 const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, () => {
   logWithTimestamp(`Server running on port ${PORT}`);
 });
 
-// Handle graceful shutdown
+// Graceful Shutdown Handler
 process.on('SIGINT', () => {
   mqttService.end();
   DatabaseService.close();

@@ -1,7 +1,17 @@
+/**
+ * Firebase Cloud Messaging Function 
+ * @module utils
+ * @description Firebase Cloud Messaging Function 
+ */
+
 const admin = require('firebase-admin');
 const DatabaseService = require('../services/databaseService');
 const { logWithTimestamp } = require('../utils/logger');
 
+/**
+ * Send Anomalies Notification
+ * @param {JSON} data - JSON Data
+ */
 const sendAnomaliesNotification = async (data) => {
     try {
       const result = await DatabaseService.fetchUsersToken();

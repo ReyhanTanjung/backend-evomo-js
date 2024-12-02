@@ -1,4 +1,9 @@
-// routes/apiRoutes.js
+/**
+ * API Endpoint Routes
+ * @module routes/apiRoutes
+ * @description Endpoint Apit
+ */
+
 const express = require('express');
 const admin = require('firebase-admin');
 const { formatDate } = require('../utils/dateFormatter');
@@ -7,7 +12,14 @@ const { sendAnomaliesNotification } = require('../utils/cloudMessaging');
 
 const router = express.Router();
 
-// Endpoint untuk mengambil data historis berdasarkan lokasi dan rentang waktu
+/**
+ * API Route to fetch historical data for a specific location within a date range
+ * @route GET /fetch_data/:location/:startdate&:enddate
+ * @param {string} location - The location identifier
+ * @param {string} startdate - Start date for data retrieval
+ * @param {string} enddate - End date for data retrieval
+ * @returns {Object[]} Formatted energy meter readings
+ */
 router.get('/fetch_data/:location/:startdate&:enddate', async (req, res) => {
   const { location, startdate, enddate } = req.params;
 
@@ -34,7 +46,12 @@ router.get('/fetch_data/:location/:startdate&:enddate', async (req, res) => {
   }
 });
 
-// Endpoint untuk mengambil dua data terakhir berdasarkan lokasi
+/**
+ * API Route to fetch the last two records for a specific location
+ * @route GET /fetch_data/:location/last_history
+ * @param {string} location - The location identifier
+ * @returns {Object[]} Last two energy meter readings
+ */
 router.get('/fetch_data/:location/last_history', async (req, res) => {
   const { location } = req.params;
 
@@ -61,7 +78,11 @@ router.get('/fetch_data/:location/last_history', async (req, res) => {
   }
 });
 
-// Endpoint untuk mengambil semua data anomali
+/**
+ * API Route to fetch all anomaly records
+ * @route GET /fetch_data/anomaly
+ * @returns {Object[]} List of anomaly records
+ */
 router.get('/fetch_data/anomaly', async (req, res) => {
   try {
     const result = await DatabaseService.fetchAnomalies();
@@ -79,7 +100,12 @@ router.get('/fetch_data/anomaly', async (req, res) => {
   }
 });
 
-// Endpoint untuk mengambil detail anomali berdasarkan ID
+/**
+ * API Route to fetch detailed anomaly information by ID
+ * @route GET /fetch_data/anomaly/:id
+ * @param {string} id - Unique identifier for the anomaly
+ * @returns {Object[]} Detailed anomaly information
+ */
 router.get('/fetch_data/anomaly/:id', async (req, res) => {
   const { id } = req.params;
 
@@ -115,7 +141,12 @@ router.get('/fetch_data/anomaly/:id', async (req, res) => {
   }
 });
 
-// Add token
+/**
+ * API Route to add a notification token
+ * @route POST /add_notification_token
+ * @param {Object} req.body - Request body containing notification token
+ * @returns {Object} Status of token registration
+ */
 router.post("/add_notification_token", async (req, res) => {
   const { token } = req.body;
 
@@ -133,6 +164,11 @@ router.post("/add_notification_token", async (req, res) => {
 });
 
 // Testing purposes (Send Notification) Delete Later
+/**
+ * Test Route for Sending Anomaly Notifications (Should be removed in production)
+ * @route POST /send-notification
+ * @returns {Object} Notification sending status
+ */
 router.post("/send-notification", async (req, res) => {
   const anomalyData = {
     timestamp: "2024-11-28 15:30:00",
