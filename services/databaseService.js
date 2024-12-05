@@ -108,9 +108,10 @@ class DatabaseService {
   async saveHoursUsage() {
     try {
       const currentTime = new Date();
+      // Konversi ke zona waktu Jakarta (UTC+7) karena VM berada di UTC+0
+      const jakartaTime = new Date(currentTime.getTime() + 7 * 60 * 60 * 1000);
+      const oneHourAgo = new Date(jakartaTime.getTime() - 60 * 60 * 1000);
       
-      const oneHourAgo = new Date(currentTime.getTime() - 60 * 60 * 1000);
-
       const query = `
           SELECT position, meter_type, meter_serial_number, 
                 AVG(active_energy_import) AS avg_active_energy_import,
@@ -124,7 +125,7 @@ class DatabaseService {
           GROUP BY position, meter_type, meter_serial_number
       `;
 
-      const result = await this.client.query(query, [oneHourAgo, currentTime]);
+      const result = await this.client.query(query, [oneHourAgo, jakartaTime]);
 
       for (const row of result.rows) {
           const insertQuery = `
@@ -315,7 +316,7 @@ class DatabaseService {
 
       logWithTimestamp(`Prediksi untuk ${location}: ${JSON.stringify(response.data)}`);
 
-      return response.data;
+      return response.prediction;
     } catch (error) {
       logWithTimestamp(`Kesalahan prediksi anomali untuk ${location}: ${error.message}`);
       throw error;
