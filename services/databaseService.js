@@ -108,7 +108,7 @@ class DatabaseService {
   async saveHoursUsage() {
     try {
       const currentTime = new Date();
-      const oneHourAgo = new Date(jakartaTime.getTime() - 60 * 60 * 1000);
+      const oneHourAgo = new Date(currentTime.getTime() - 60 * 60 * 1000);
       
       const query = `
           SELECT position, meter_type, meter_serial_number, 
