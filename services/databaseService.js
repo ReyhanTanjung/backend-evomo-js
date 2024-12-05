@@ -108,8 +108,6 @@ class DatabaseService {
   async saveHoursUsage() {
     try {
       const currentTime = new Date();
-      // Konversi ke zona waktu Jakarta (UTC+7) karena VM berada di UTC+0
-      const jakartaTime = new Date(currentTime.getTime() + 7 * 60 * 60 * 1000);
       const oneHourAgo = new Date(jakartaTime.getTime() - 60 * 60 * 1000);
       
       const query = `
@@ -125,7 +123,7 @@ class DatabaseService {
           GROUP BY position, meter_type, meter_serial_number
       `;
 
-      const result = await this.client.query(query, [oneHourAgo, jakartaTime]);
+      const result = await this.client.query(query, [oneHourAgo, currentTime]);
 
       for (const row of result.rows) {
           const insertQuery = `
