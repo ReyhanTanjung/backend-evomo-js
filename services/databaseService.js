@@ -7,7 +7,7 @@
 const { Client } = require('pg');
 const axios = require('axios');
 const dbConfig = require('../config/database');
-const { sendAnomalyNotification } = require('../utils/cloudMessaging');
+const { sendAnomaliesNotification } = require('../utils/cloudMessaging');
 const { logWithTimestamp } = require('../utils/logger');
 const dayjs = require('dayjs');
 
