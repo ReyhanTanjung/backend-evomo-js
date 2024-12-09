@@ -309,7 +309,12 @@ class DatabaseService {
   
           const predictionResponse = await axios.post(
             `https://ml-api-903524315911.asia-southeast1.run.app${endpoint}`, 
-            predictionPayload
+            predictionPayload,
+            {
+              headers: {
+                'Content-Type': 'application/json',
+              }
+            }
           );
   
           if (predictionResponse.data.anomaly === true) {
