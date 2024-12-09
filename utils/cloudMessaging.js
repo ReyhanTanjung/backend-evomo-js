@@ -28,11 +28,7 @@ const sendAnomaliesNotification = async (data) => {
           title: "Anomaly Notification",
           body: "Anomaly on energy usage",
         },
-        data: {
-          timestamp: data.timestamp || "",
-          anomaly: data.anomaly || "NORMAL",
-          location: data.location || "",
-        },
+        data,
         tokens: tokens,
       };
   
