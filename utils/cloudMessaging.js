@@ -18,12 +18,19 @@ const sendAnomaliesNotification = async (data, tokens) => {
       return;
     }
 
+    // Konversi semua data menjadi string
+    const stringData = {
+      timestamp: data.timestamp ? data.timestamp.toString() : '',
+      anomaly: data.anomaly ? data.anomaly.toString() : '',
+      location: data.location ? data.location.toString() : ''
+    };
+
     const message = {
       notification: {
         title: "Anomaly Notification",
-        body: "Anomaly on energy usage",
+        body: `Anomaly energy usage`,
       },
-      data,
+      data: stringData,
       tokens: tokens,
     };
 

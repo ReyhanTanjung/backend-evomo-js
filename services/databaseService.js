@@ -283,19 +283,19 @@ class DatabaseService {
           FROM hours_usage
           WHERE reading_time BETWEEN $1 AND $2
       `;
-  
+
+      const result = await this.client.query(query, [halfhourago, currentTime]);
+      logWithTimestamp(result.rows)
+
       const tokensResult = await this.fetchUsersToken();
       const tokens = tokensResult.map(item => item.token);
-  
-      const result = await this.client.query(query, [halfhourago, currentTime]);
-  
+
       const predictionEndpoints = {
         'AHU_Lantai_2': '/predict_ahu',
         'Chiller_Witel_Jaksel': '/predict_chiller',
         'Lift_Witel_Jaksel': '/predict_lift'
-        // Note: Lift_OPMC is intentionally not included
       };
-  
+      
       for (const row of result.rows) {
         const endpoint = predictionEndpoints[row.position];
         
@@ -303,13 +303,13 @@ class DatabaseService {
           logWithTimestamp(`No prediction endpoint for location: ${row.position}`);
           continue;
         }
-  
+
         try {
           const predictionPayload = {
             timestamp: dayjs(row.reading_time).format('YYYY-MM-DD HH:mm:ss'),
             usage: row.usage
           };
-  
+
           const predictionResponse = await axios.post(
             `https://ml-api-903524315911.asia-southeast1.run.app${endpoint}`, 
             predictionPayload,
@@ -319,32 +319,34 @@ class DatabaseService {
               }
             }
           );
-  
+
           if (predictionResponse.data.anomaly === true) {
             const anomalyQuery = `
               INSERT INTO anomaly_data (hours_usage_id, anomaly_type)
               VALUES ($1, $2)
             `;
             await this.client.query(anomalyQuery, [row.id, 'ANOMALY']);
-  
+
             const message = {
               timestamp: row.reading_time,
               anomaly: 'ANOMALY',
               location: row.position
             }
             
-            try {
-              const response = await sendAnomaliesNotification(message, tokens);
-              console.log("Notifikasi berhasil dikirim:", response);
-            } catch (error) {
-              console.error("Gagal mengirim notifikasi:", error);
+            if (tokens.length > 0) {
+              try {
+                const response = await sendAnomaliesNotification(message, tokens);
+                console.log("Notifikasi berhasil dikirim:", response);
+              } catch (error) {
+                console.error("Gagal mengirim notifikasi:", error);
+              }
             }
           }
         } catch (err) {
           logWithTimestamp(`Prediction error for ${row.position}`);
         }
       }
-  
+
       logWithTimestamp('Anomaly prediction and processing completed.');
     } catch (error) {
       logWithTimestamp('Error in anomaly prediction process:', error);
