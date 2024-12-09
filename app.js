@@ -76,26 +76,8 @@ const mqttService = new MqttService(
 
 // Periodic Data Processing Schedule
 cron.schedule('5 * * * *', async () => {
-  // Fungsi Save Average Hours Usage ke tabel hours_usage untuk setiap lokasi
   await DatabaseService.saveHoursUsage();
-  // Fetch data 24 jam terakhir dari setiap lokasi dan kirim ke Endpoint Model ML
-  // Simpan respon prediksi dari Model ML ke suatu variabel untuk setiap lokasi (respon prediksi adalah data prediksi penggunaan 1 jam kedepan)
-  // Fetch data 1 jam terakhir dari setiap lokasi
-  // Bandingkan dengan data prediksi
-  // Apabila ada Anomaly kirim notifikasi dengan fungsi sendAnomaliesNotification di utils/cloudMessaging dan simpan data ke database di tabel anomaly_data dengan id merupakan id dari data pada hours_usage
-  // Field data yang perlu diisi ada di contoh routes/apiRoutes.js router.post() (fungsi ini nanti di apus karena contoh doang) 
-  // untuk testing jangan, pake database postgres sekarang, tapi pake localhost aja
-  // Di services/databaseServic.js ada fungsi fetchLast24HoursUsage (ngambil data 24 jam), sendAnomalyPredictionRequest (kirim data anomaly), processAnomalyPredictions (proses data prediksi untuk menntukan anomaly) tapi belum dicoba
-
-  // Contoh Cases:
-  // Jam 9 pagi ada data masuk
-  // Simpan data average selama satu jam (8-9) kedalam tabel hours_usage di database
-  // Fetch data 24 jam terakhir dari tabel hours_usage dan kirim ke Endpoint Model ML
-  // Simpan respon prediksi dari Model ML (data untuk jam 10) ke suatu variabel untuk setiap lokasi 
-  // Fetch data 1 jam terakhir dari setiap lokasi (data dari jam 8-9) dan bandingkan dengan data prediksi
-  // deteksi anomaly, apabila ada anomaly simpan di database dan kirim notifikasi
-  // kalau tidak ada, jangan lakukan apa apa
-  
+  await DatabaseService.predictAndSaveAnomalies();
 });
 
 // Server Configuration

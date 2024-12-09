@@ -7,6 +7,7 @@
 const { Client } = require('pg');
 const axios = require('axios');
 const dbConfig = require('../config/database');
+const { sendAnomalyNotification } = require('../utils/cloudMessaging');
 const { logWithTimestamp } = require('../utils/logger');
 const dayjs = require('dayjs');
 
@@ -256,7 +257,7 @@ class DatabaseService {
    */
   async fetchAnomalyDetails(id) {
     const query = `
-      SELECT hu.*, ad.anomaly_type, ad.predicted_energy
+      SELECT hu.*, ad.anomaly_type
       FROM hours_usage hu
       JOIN anomaly_data ad ON hu.id = ad.hours_usage_id
       WHERE hu.id = $1
@@ -266,104 +267,81 @@ class DatabaseService {
     return result.rows;
   }
 
-  // NEED TO CHECK
   /**
-   * Retrieve last 24 hours of energy import data
+   * Send anomaly notification via Firebase Cloud Messaging
    * @method
-   * @param {string} location - Sensor location identifier
-   * @returns {Promise<number[]>} Active energy import values for the last 24 hours
+   * @param {Object} anomalyData - Anomaly details for notification
    */
-  async fetchLast24HoursUsage(location) {
-    const query = `
-      SELECT active_energy_import 
-      FROM hours_usage 
-      WHERE position = $1 
-      ORDER BY id 
-      LIMIT 24;
-    `;
-
-    const result = await this.client.query(query, [location]);
-    return result.rows.map(row => row.active_energy_import);
-  }
-
-  // NEED TO CHECK
-  /**
-   * Send anomaly prediction request to machine learning service
-   * @method
-   * @param {string} location - Sensor location to predict anomalies for
-   * @returns {Promise<Object>} Prediction results from ML service
-   */
-  async sendAnomalyPredictionRequest(location) {
+  async predictAndSaveAnomalies() {
     try {
-      const usageData = await this.fetchLast24HoursUsage(location);
-
+      const currentTime = new Date();
+      const halfhourago = new Date(currentTime.getTime() - 30 * 60 * 1000);
+      
+      const query = `
+          SELECT id, reading_time, position, 
+                 active_energy_import AS usage
+          FROM hours_usage
+          WHERE reading_time BETWEEN $1 AND $2
+      `;
+  
+      const result = await this.client.query(query, [halfhourago, currentTime]);
+  
       const predictionEndpoints = {
-        'Chiller_Witel_Jaksel': 'https://ml-api.example.com/predict/chiller', // DUMMY
-        'Lift_Witel_Jaksel': 'https://ml-api.example.com/predict/lift-jaksel', // DUMMY
-        'Lift_OPMC': 'https://ml-api.example.com/predict/lift-opmc', // DUMMY
-        'AHU_Lantai_2': 'https://ml-api.example.com/predict/ahu-lantai2' // DUMMY
+        'AHU_Lantai_2': '/predict_ahu',
+        'Chiller_Lantai_2': '/predict_chiller',
+        'Lift_Witel_Jaksel': '/predict_lift'
+        // Note: Lift_OPMC is intentionally not included
       };
-
-      if (!predictionEndpoints[location]) {
-        throw new Error(`Endpoint tidak ditemukan untuk lokasi: ${location}`);
-      }
-
-      const response = await axios.post(predictionEndpoints[location], {
-        features: usageData
-      });
-
-      logWithTimestamp(`Prediksi untuk ${location}: ${JSON.stringify(response.data)}`);
-
-      return response.prediction;
-    } catch (error) {
-      logWithTimestamp(`Kesalahan prediksi anomali untuk ${location}: ${error.message}`);
-      throw error;
-    }
-  }
-
-  // NEED TO CHECK
-  /**
-   * Process anomaly predictions for multiple locations
-   * @method
-   * @returns {Promise<Array>} Prediction results for each location
-   */
-  async processAnomalyPredictions() {
-    const locations = [
-      'Chiller_Witel_Jaksel', 
-      'Lift_Witel_Jaksel', 
-      'Lift_OPMC', 
-      'AHU_Lantai_2'
-    ];
-
-    try {
-      await this.saveHoursUsage();
-
-      const predictions = await Promise.all(
-        locations.map(async (location) => {
-          try {
-            const prediction = await this.sendAnomalyPredictionRequest(location);
-            return { location, prediction };
-          } catch (error) {
-            return { location, error: error.message };
-          }
-        })
-      );
-
-      predictions.forEach(result => {
-        if (result.prediction) {
-          logWithTimestamp(`Prediksi ${result.location}: ${JSON.stringify(result.prediction)}`);
-          
-          // Simpan ke database atau kirim notifikasi jika ada anomali
-          // this.checkAndSendAnomalyNotification(result.location, result.prediction);
-        } else {
-          logWithTimestamp(`Gagal prediksi ${result.location}: ${result.error}`);
+  
+      for (const row of result.rows) {
+        const endpoint = predictionEndpoints[row.position];
+        
+        if (!endpoint) {
+          logWithTimestamp(`No prediction endpoint for location: ${row.position}`);
+          continue;
         }
-      });
+  
+        try {
+          const predictionPayload = {
+            timestamp: dayjs(row.reading_time).format('YYYY-MM-DD HH:mm:ss'),
+            usage: row.usage
+          };
+  
+          const predictionResponse = await axios.post(
+            `https://ml-api-903524315911.asia-southeast1.run.app${endpoint}`, 
+            predictionPayload
+          );
+  
+          if (predictionResponse.data.anomaly === true) {
+            const anomalyQuery = `
+              INSERT INTO anomaly_data (hours_usage_id, anomaly_type)
+              VALUES ($1, $2)
+            `;
+            await this.client.query(anomalyQuery, [row.id, 'ANOMALY']);
 
-      return predictions;
+            const message = {
+              timestamp: row.reading_time,
+              anomaly:'ANOMALY',
+              location: row.position
+            }
+            
+            sendAnomalyNotification(message)
+            .then(response => {
+              console.log("Notifikasi berhasil dikirim:", response);
+            })
+            .catch(error => {
+              console.error("Gagal mengirim notifikasi:", error);
+            });
+
+          }
+        } catch (err) {
+          logWithTimestamp(`Prediction error for ${row.position}`);
+        }
+      }
+  
+      logWithTimestamp('Anomaly prediction and processing completed.');
     } catch (error) {
-      logWithTimestamp(`Kesalahan proses prediksi: ${error.message}`);
-      throw error;
+      logWithTimestamp('Error in anomaly prediction process:', error);
     }
   }
 
