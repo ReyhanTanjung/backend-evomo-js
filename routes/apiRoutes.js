@@ -169,23 +169,6 @@ router.post("/add_notification_token", async (req, res) => {
  * @route POST /send-notification
  * @returns {Object} Notification sending status
  */
-// router.post("/send-notification", async (req, res) => {
-//   const anomalyData = {
-//     timestamp: "2024-11-28 15:30:00",
-//     anomaly: "Overheating detected",
-//     location: "Jakarta",
-//   };
-
-//   sendAnomaliesNotification(anomalyData)
-//     .then(response => {
-//       console.log("Notifikasi berhasil dikirim:", response);
-//       res.status(200).json({ message: 'Notifikasi berhasil dikirim' });
-//     })
-//     .catch(error => {
-//       console.error("Gagal mengirim notifikasi:", error);
-//       res.status(500).json({ message: 'Notifikasi gagal dikirim' });
-//     });
-// });
 router.post("/send-notification", async (req, res) => {
   const anomalyData = {
     timestamp: "2024-11-28 15:30:00",

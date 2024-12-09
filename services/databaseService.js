@@ -284,6 +284,9 @@ class DatabaseService {
           WHERE reading_time BETWEEN $1 AND $2
       `;
   
+      const tokensResult = await this.fetchUsersToken();
+      const tokens = tokensResult.map(item => item.token);
+  
       const result = await this.client.query(query, [halfhourago, currentTime]);
   
       const predictionEndpoints = {
@@ -323,21 +326,19 @@ class DatabaseService {
               VALUES ($1, $2)
             `;
             await this.client.query(anomalyQuery, [row.id, 'ANOMALY']);
-
+  
             const message = {
               timestamp: row.reading_time,
-              anomaly:'ANOMALY',
+              anomaly: 'ANOMALY',
               location: row.position
             }
             
-            sendAnomalyNotification(message)
-              .then(response => {
-                console.log("Notifikasi berhasil dikirim:", response);
-              })
-              .catch(error => {
-                console.error("Gagal mengirim notifikasi:", error);
-              });
-
+            try {
+              const response = await sendAnomaliesNotification(message, tokens);
+              console.log("Notifikasi berhasil dikirim:", response);
+            } catch (error) {
+              console.error("Gagal mengirim notifikasi:", error);
+            }
           }
         } catch (err) {
           logWithTimestamp(`Prediction error for ${row.position}`);
