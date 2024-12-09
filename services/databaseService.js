@@ -288,7 +288,7 @@ class DatabaseService {
   
       const predictionEndpoints = {
         'AHU_Lantai_2': '/predict_ahu',
-        'Chiller_Lantai_2': '/predict_chiller',
+        'Chiller_Witel_Jaksel': '/predict_chiller',
         'Lift_Witel_Jaksel': '/predict_lift'
         // Note: Lift_OPMC is intentionally not included
       };
@@ -331,12 +331,12 @@ class DatabaseService {
             }
             
             sendAnomalyNotification(message)
-            .then(response => {
-              console.log("Notifikasi berhasil dikirim:", response);
-            })
-            .catch(error => {
-              console.error("Gagal mengirim notifikasi:", error);
-            });
+              .then(response => {
+                console.log("Notifikasi berhasil dikirim:", response);
+              })
+              .catch(error => {
+                console.error("Gagal mengirim notifikasi:", error);
+              });
 
           }
         } catch (err) {
