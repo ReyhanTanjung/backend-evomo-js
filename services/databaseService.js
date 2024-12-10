@@ -325,7 +325,7 @@ class DatabaseService {
           };
 
           const predictionResponse = await axios.post(
-            `https://ml-api-903524315911.asia-southeast1.run.app${endpoint}`, 
+            `https://ml-api-903524315911.asia-southeast2.run.app${endpoint}`, 
             predictionPayload,
             {
               headers: {
