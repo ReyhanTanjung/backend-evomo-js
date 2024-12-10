@@ -9,7 +9,9 @@ const axios = require('axios');
 const dbConfig = require('../config/database');
 const { sendAnomaliesNotification } = require('../utils/cloudMessaging');
 const { logWithTimestamp } = require('../utils/logger');
+const { formatDate } = require('../utils/dateFormatter');
 const dayjs = require('dayjs');
+const moment = require('moment-timezone');
 
 /**
  * DatabaseService: Handles PostgreSQL database operations for energy monitoring system
@@ -82,7 +84,8 @@ class DatabaseService {
    * @description Stores user token with current date in user_token table
    */
   async saveTokenToDb(token) {
-    const jakartaTime = new Date().toISOString().slice(0, 10);
+    const jakartaTime = formatDate(moment().tz('Asia/Jakarta'));
+
     const query = `
       INSERT INTO user_token(token, init_time)
       VALUES($1, $2)
@@ -108,8 +111,9 @@ class DatabaseService {
    */
   async saveHoursUsage() {
     try {
-      const currentTime = new Date();
-      const oneHourAgo = new Date(currentTime.getTime() - 60 * 60 * 1000);
+      const now = moment().tz('Asia/Jakarta');
+      const currentTime = formatDate(now);
+      const oneHourAgo = formatDate(now.clone().substract(1, 'hour'));
       
       const query = `
           SELECT position, meter_type, meter_serial_number, 
@@ -200,14 +204,23 @@ class DatabaseService {
     let query = 'SELECT * FROM sensor_data WHERE position = $1';
     const queryParams = [location];
 
+    // if (startdate) {
+    //   query += ' AND reading_time >= $' + (queryParams.length + 1);
+    //   queryParams.push(new Date(startdate));
+    // }
+
+    // if (enddate) {
+    //   query += ' AND reading_time <= $' + (queryParams.length + 1);
+    //   queryParams.push(new Date(enddate));
+    // }
     if (startdate) {
       query += ' AND reading_time >= $' + (queryParams.length + 1);
-      queryParams.push(new Date(startdate));
+      queryParams.push(formatDate(startdate));
     }
 
     if (enddate) {
       query += ' AND reading_time <= $' + (queryParams.length + 1);
-      queryParams.push(new Date(enddate));
+      queryParams.push(formatDate(enddate));
     }
 
     const result = await this.client.query(query, queryParams);
@@ -274,8 +287,9 @@ class DatabaseService {
    */
   async predictAndSaveAnomalies() {
     try {
-      const currentTime = new Date();
-      const halfhourago = new Date(currentTime.getTime() - 30 * 60 * 1000);
+      const now = moment.utc().tz('Asia/Jakarta');
+      const currentTime = formatDate(now);
+      const halfhourago = formatDate(now.clone().substract(30, 'minutes'));
       
       const query = `
           SELECT id, reading_time, position, 
@@ -285,7 +299,6 @@ class DatabaseService {
       `;
 
       const result = await this.client.query(query, [halfhourago, currentTime]);
-      logWithTimestamp(result.rows)
 
       const tokensResult = await this.fetchUsersToken();
       const tokens = tokensResult.map(item => item.token);
