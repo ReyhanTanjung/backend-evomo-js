@@ -4,7 +4,7 @@ dotenv.config();
 
 module.exports = {
   user: 'postgres',
-  host: 'localhost',
+  host: '34.123.56.222',
   database: 'metrics_data',
   password: 'keren123',
   port: 5432
