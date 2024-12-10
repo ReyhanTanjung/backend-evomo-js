@@ -113,7 +113,7 @@ class DatabaseService {
     try {
       const now = moment().tz('Asia/Jakarta');
       const currentTime = formatDate(now);
-      const oneHourAgo = formatDate(now.clone().substract(1, 'hour'));
+      const oneHourAgo = formatDate(now.clone().subtract(1, 'hour'));
       
       const query = `
           SELECT position, meter_type, meter_serial_number, 
@@ -289,7 +289,7 @@ class DatabaseService {
     try {
       const now = moment.utc().tz('Asia/Jakarta');
       const currentTime = formatDate(now);
-      const halfhourago = formatDate(now.clone().substract(30, 'minutes'));
+      const halfhourago = formatDate(now.clone().subtract(30, 'minutes'));
       
       const query = `
           SELECT id, reading_time, position, 
@@ -306,7 +306,8 @@ class DatabaseService {
       const predictionEndpoints = {
         'AHU_Lantai_2': '/predict_ahu',
         'Chiller_Witel_Jaksel': '/predict_chiller',
-        'Lift_Witel_Jaksel': '/predict_lift'
+        'Lift_Witel_Jaksel': '/predict_lift_witel',
+        'Lift_OPMC': '/predict_lift_opmc'
       };
       
       for (const row of result.rows) {
@@ -319,7 +320,7 @@ class DatabaseService {
 
         try {
           const predictionPayload = {
-            timestamp: dayjs(row.reading_time).format('YYYY-MM-DD HH:mm:ss'),
+            timestamp: formatDate(row.reading_time),
             usage: row.usage
           };
 
@@ -332,7 +333,7 @@ class DatabaseService {
               }
             }
           );
-
+          
           if (predictionResponse.data.anomaly === true) {
             const anomalyQuery = `
               INSERT INTO anomaly_data (hours_usage_id, anomaly_type)
@@ -341,7 +342,7 @@ class DatabaseService {
             await this.client.query(anomalyQuery, [row.id, 'ANOMALY']);
 
             const message = {
-              timestamp: row.reading_time,
+              timestamp: formatDate(row.reading_time),
               anomaly: 'ANOMALY',
               location: row.position
             }
