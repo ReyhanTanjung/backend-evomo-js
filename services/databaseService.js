@@ -204,15 +204,6 @@ class DatabaseService {
     let query = 'SELECT * FROM sensor_data WHERE position = $1';
     const queryParams = [location];
 
-    // if (startdate) {
-    //   query += ' AND reading_time >= $' + (queryParams.length + 1);
-    //   queryParams.push(new Date(startdate));
-    // }
-
-    // if (enddate) {
-    //   query += ' AND reading_time <= $' + (queryParams.length + 1);
-    //   queryParams.push(new Date(enddate));
-    // }
     if (startdate) {
       query += ' AND reading_time >= $' + (queryParams.length + 1);
       queryParams.push(formatDate(startdate));
