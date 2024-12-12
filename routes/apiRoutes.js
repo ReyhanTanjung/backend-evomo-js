@@ -163,31 +163,4 @@ router.post("/add_notification_token", async (req, res) => {
   }
 });
 
-// Testing purposes (Send Notification) Delete Later
-/**
- * Test Route for Sending Anomaly Notifications (Should be removed in production)
- * @route POST /send-notification
- * @returns {Object} Notification sending status
- */
-router.post("/send-notification", async (req, res) => {
-  const anomalyData = {
-    timestamp: "2024-11-28 15:30:00",
-    anomaly: "Overheating detected",
-    location: "Jakarta",
-  };
-
-  try {
-    // Fetch tokens explicitly
-    const tokenResult = await DatabaseService.fetchUsersToken();
-    const tokens = tokenResult.map(item => item.token);
-
-    const response = await sendAnomaliesNotification(anomalyData, tokens);
-    console.log("Notifikasi berhasil dikirim:", response);
-    res.status(200).json({ message: 'Notifikasi berhasil dikirim' });
-  } catch (error) {
-    console.error("Gagal mengirim notifikasi:", error);
-    res.status(500).json({ message: 'Notifikasi gagal dikirim' });
-  }
-});
-
 module.exports = router;
